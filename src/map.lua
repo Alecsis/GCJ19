@@ -31,36 +31,29 @@ local function is_cell_reachable(map, i, j, movement)
 end
 
 -- data structure to storing a path for the exploration algorithm
-local function new_cell(i, j, cost, movement, from) -- TODO: remove movement
+local function new_cell(i, j, cost, from) -- TODO: remove movement
     local myCell = {}
     myCell.i = i
     myCell.j = j
     myCell.cost = cost
-    myCell.movement = movement
     myCell.from = from
     return myCell
 end
 
---[[
-local function get_id(i, j, w)
-    return (j - 1) * w + i
-end]]
-
 local function add_to_explore(exploration, to_add)
--- check if the tile is already in the exploration list
-for _, explo in pairs(exploration) do
-    if explo.i == to_add.i and explo.j == to_add.j then
-        -- in that case, if to_add has more movement points left
-        if to_add.cost < explo.cost then
-            -- replace current cell by to_add cell
-            explo.movement = to_add.movement
-            explo.from = to_add.from
-            explo.cost = to_add.cost
+    -- check if the tile is already in the exploration list
+    for _, explo in pairs(exploration) do
+        if explo.i == to_add.i and explo.j == to_add.j then
+            -- in that case, if to_add has more movement points left
+            if to_add.cost < explo.cost then
+                -- replace current cell by to_add cell
+                explo.from = to_add.from
+                explo.cost = to_add.cost
+            end
+            return
         end
-        return
     end
-end
-table.insert(exploration, to_add)
+    table.insert(exploration, to_add)
 end
 
 local function get_cost(map, cell)
@@ -99,24 +92,21 @@ local function get_reachable_cells(map, pi, pj, pmovement)
     -- store adjacent cells
     
     if pi > 0 then
-        local cell = new_cell(pi - 1, pj, map:get_tilemovement(pi-1, pj), pmovement, nil)
+        local cell = new_cell(pi - 1, pj, map:get_tilemovement(pi-1, pj), nil)
         add_to_explore(exploration, cell)
     end
     if pi < map.size - 1 then
-        local cell = new_cell(pi + 1, pj, map:get_tilemovement(pi+1, pj), pmovement, nil)
+        local cell = new_cell(pi + 1, pj, map:get_tilemovement(pi+1, pj), nil)
         add_to_explore(exploration, cell)
     end
     if pj > 0 then
-        local cell = new_cell(pi, pj - 1, map:get_tilemovement(pi, pj-1), pmovement, nil)
+        local cell = new_cell(pi, pj - 1, map:get_tilemovement(pi, pj-1), nil)
         add_to_explore(exploration, cell)
     end
     if pj < map.size - 1 then
-        local cell = new_cell(pi, pj + 1, map:get_tilemovement(pi, pj+1), pmovement, nil)
+        local cell = new_cell(pi, pj + 1, map:get_tilemovement(pi, pj+1), nil)
         add_to_explore(exploration, cell)
     end
-
-    -- store first cell (no movement cost)
-    --add_to_explore(exploration, new_cell(pi, pj, 0, pmovement))
 
     while #exploration > 0 do
         ---print(#exploration, #reachables)
@@ -165,28 +155,28 @@ local function get_reachable_cells(map, pi, pj, pmovement)
                 if i > 0 then
                     local adj_cost = map:get_tilemovement(i - 1, j)
                     if total_cost + adj_cost <= pmovement then
-                        local cell = new_cell(i - 1, j, total_cost + adj_cost, movement - adj_cost, curr)
+                        local cell = new_cell(i - 1, j, total_cost + adj_cost, curr)
                         add_to_explore(exploration, cell)
                     end
                 end
                 if i < map.size - 1 then
                     local adj_cost = map:get_tilemovement(i + 1, j)
                     if total_cost + adj_cost <= pmovement then
-                        local cell = new_cell(i + 1, j, total_cost + adj_cost, movement - adj_cost, curr)
+                        local cell = new_cell(i + 1, j, total_cost + adj_cost, curr)
                         add_to_explore(exploration, cell)
                     end
                 end
                 if j > 0 then
                     local adj_cost = map:get_tilemovement(i, j - 1)
                     if total_cost + adj_cost <= pmovement then
-                        local cell = new_cell(i, j - 1, total_cost + adj_cost, movement - adj_cost, curr)
+                        local cell = new_cell(i, j - 1, total_cost + adj_cost, curr)
                         add_to_explore(exploration, cell)
                     end
                 end
                 if j < map.size - 1 then
                     local adj_cost = map:get_tilemovement(i, j + 1)
                     if total_cost + adj_cost <= pmovement then
-                        local cell = new_cell(i, j + 1, total_cost + adj_cost, movement - adj_cost, curr)
+                        local cell = new_cell(i, j + 1, total_cost + adj_cost, curr)
                         add_to_explore(exploration, cell)
                     end
                 end

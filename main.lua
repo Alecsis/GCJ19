@@ -45,7 +45,7 @@ function love.load()
         if pState == "end" then
             if tank.selected then
                 -- gather reachables cells from the map
-                reachables = map:get_reachable_cells(tank.i, tank.j, tank.movement)
+                reachables = map:get_reachable_cells(tank.i, tank.j, tank.current_movement)
                 tank:set_move_state()
             end
         end
