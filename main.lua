@@ -76,10 +76,6 @@ function love.update(dt)
     mouse.y = love.mouse.getY()
     local i = math.floor((mouse.x - map.offset.x) / map.tilesize) 
     local j = math.floor((mouse.y - map.offset.y) / map.tilesize)
-    --[[if i < 0 then i = 0 end
-    if i >= map.size then i = map.size - 1 end
-    if j < 0 then j = 0 end
-    if j >= map.size then j = map.size - 1 end]]
     mouse.i = i
     mouse.j = j
     
@@ -103,6 +99,7 @@ function love.update(dt)
             if mouse.i == tank.i and mouse.j == tank.j then
                 tank.selected = true
             else
+                local moved = false
                 if tank.state == tank.states.movement then
                     -- check if a cell is matching the wanted location
                     for _, cell in pairs(reachables) do
@@ -110,11 +107,14 @@ function love.update(dt)
                             -- get the movement cost
                             local cost = map:get_cost(cell)
                             tank:move(mouse.i, mouse.j, cost)
+                            moved =  true
                         end
                     end
                 end
-                tank.selected = false
                 tank:set_idle_state()
+                if not moved then
+                    tank.selected = false
+                end
             end
         end
     end
@@ -128,9 +128,6 @@ function love.draw()
     map:draw()
 
     if tank.state == tank.states.movement then
-        if not reachables then
-            reachables = map:get_reachable_cells(tank.i, tank.j, tank.movement)
-        end
         -- draw reachable cells
         for _, cell in pairs(reachables) do
             love.graphics.setColor(0,1,1,1)

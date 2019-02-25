@@ -128,7 +128,6 @@ local function get_reachable_cells(map, pi, pj, pmovement)
         table.remove(exploration, 1)
 
         if pmovement >= total_cost then
-            print(pmovement, total_cost)
             -- this cell is reachable
             -- check if there is another path on this cell
             local already_explored = false
