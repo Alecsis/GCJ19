@@ -44,6 +44,8 @@ function love.load()
     local function move_button_pressed(pState)
         if pState == "end" then
             if tank.selected then
+                -- gather reachables cells from the map
+                reachables = map:get_reachable_cells(tank.i, tank.j, tank.movement)
                 tank:set_move_state()
             end
         end
@@ -102,9 +104,13 @@ function love.update(dt)
                 tank.selected = true
             else
                 if tank.state == tank.states.movement then
-                    local cost = map:get_cost(tank.i, tank.j, mouse.i, mouse.j)
-                    if map:is_cell_reachable(mouse.i, mouse.j, tank.current_movement) then
-                        tank:move(mouse.i, mouse.j)
+                    -- check if a cell is matching the wanted location
+                    for _, cell in pairs(reachables) do
+                        if cell.i == mouse.i and cell.j == mouse.j then
+                            -- get the movement cost
+                            local cost = map:get_cost(cell)
+                            tank:move(mouse.i, mouse.j, cost)
+                        end
                     end
                 end
                 tank.selected = false
@@ -122,11 +128,14 @@ function love.draw()
     map:draw()
 
     if tank.state == tank.states.movement then
-        local reachables = map:get_reachable_cells(tank.i, tank.j, tank.movement)
+        if not reachables then
+            reachables = map:get_reachable_cells(tank.i, tank.j, tank.movement)
+        end
         -- draw reachable cells
         for _, cell in pairs(reachables) do
             love.graphics.setColor(0,1,1,1)
             love.graphics.rectangle("line", cell.i * tile_size, cell.j * tile_size, tile_size, tile_size)
+            love.graphics.print(cell.cost, cell.i * tile_size, cell.j * tile_size)
         end
     end
 

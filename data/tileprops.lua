@@ -30,7 +30,7 @@ tileprops.solid = {
 tileprops.tilemovement = {
     [tileprops.tiletypes.grass] = 0.5, 
     [tileprops.tiletypes.dirt] = 1,
-    [tileprops.tiletypes.forest] = 1.5, 
+    [tileprops.tiletypes.forest] = 1.5,
     [tileprops.tiletypes.water] = 0,
     [tileprops.tiletypes.mountain] = 0,
 }

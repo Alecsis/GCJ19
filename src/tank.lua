@@ -57,81 +57,10 @@ local function new_turn(tank)
     tank.current_movement = tank.movement
 end
 
-local function move(tank, i, j, cost)
-    tank.i = i
-    tank.j = j
-    tank.current_movement = tank.current_movement - cost
-end
-
-local function get_reachable_cells(tank)
-    -- cell routine generate
-    local function new_cell(i, j, movement)
-        local cell = {}
-        cell.i = i
-        cell.j = j
-        cell.movement = movement
-        return cell
-    end
-
-    local function add_to_explore(exploration, to_add)
-        for _, explo in pairs(exploration) do
-            if explo.i == to_add.i and explo.j == to_add.j then
-                if to_add.movement > explo.movement then
-                    explo.movement = to_add.movement
-                end
-                return
-            end
-        end
-        table.insert(exploration, to_add)
-    end
-
-    -- cells to explore
-    local exploration = {}
-
-    -- reachable exploration
-    local reachables = {}
-
-    -- store tank cell
-    local tankcell = new_cell(tank.i, tank.j, tank.current_movement)
-    add_to_explore(exploration, tankcell)
-
-    while #exploration > 0 do
-        -- defile exploration to explore
-        local curr = exploration[1]
-        local movement = curr.movement
-        local i = curr.i
-        local j = curr.j
-        local id = tank.map:get(i + 1, j + 1)
-        local tilemovement = tank.map.tilemovement[id]
-
-        -- remove current cell
-        table.remove(exploration, 1)
-
-        if movement >= tilemovement then
-            -- this cell is reachable
-            table.insert(reachables, curr)
-            -- add to exploration adjacent exploration
-            if i > 0 then
-                local cell = new_cell(i - 1, j, movement - tilemovement)
-                add_to_explore(exploration, cell)
-            end
-            if i < tank.map.size - 1 then
-                local cell = new_cell(i + 1, j, movement - tilemovement)
-                add_to_explore(exploration, cell)
-            end
-            if j > 0 then
-                local cell = new_cell(i, j - 1, movement - tilemovement)
-                add_to_explore(exploration, cell)
-            end
-            if j < tank.map.size - 1 then
-                local cell = new_cell(i, j + 1, movement - tilemovement)
-                add_to_explore(exploration, cell)
-            end
-        end
-    end
-
-    tank.reachables = reachables
-    return reachables
+local function move(tank, pi, pj, pcost)
+    tank.i = pi
+    tank.j = pj
+    tank.current_movement = tank.current_movement - pcost
 end
 
 local function FTank(i, j, map)
@@ -159,14 +88,13 @@ local function FTank(i, j, map)
     tank.state = tank.states.idle
 
     -- cells reachable
-    tank.reachables = get_reachable_cells(tank)
+    --tank.reachables = get_reachable_cells(tank)
 
     -- interface functions
     tank.set_move_state = set_move_state
     tank.set_idle_state = set_idle_state
     tank.set_fire_state = set_fire_state
     tank.draw = draw
-    tank.get_reachable_cells = get_reachable_cells
     tank.new_turn = new_turn
     tank.move = move
 
