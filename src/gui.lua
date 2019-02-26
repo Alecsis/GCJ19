@@ -117,7 +117,8 @@ function gui.newNode(pX, pY)
     end
     
     -- add new event listener
-    function myNode:setEvent(pEventType, pFunction)
+    function myNode:setEvent(pEventType, pFunction, pCaller)
+        self.caller = pCaller
         self.lstEvents[pEventType] = pFunction
     end
 
@@ -163,14 +164,14 @@ function gui.newPanel(pX, pY, pW, pH)
             if not self.isHover then
                 self.isHover = true
                 if self.lstEvents["hover"] ~= nil then
-                    self.lstEvents["hover"]("begin")
+                    self.lstEvents["hover"](self.caller, "begin")
                 end
             end
         else
             if self.isHover then
                 self.isHover = false
                 if self.lstEvents["hover"] ~= nil then
-                    self.lstEvents["hover"]("begin")
+                    self.lstEvents["hover"](self.caller, "begin")
                 end
             end
         end
@@ -187,7 +188,7 @@ function gui.newPanel(pX, pY, pW, pH)
             end
             -- use begin event
             if self.lstEvents["pressed"] ~= nil then
-                self.lstEvents["pressed"]("begin")
+                self.lstEvents["pressed"](self.caller, "begin")
             end
         else
             if self.isPressed and not mouseDown then
@@ -196,7 +197,7 @@ function gui.newPanel(pX, pY, pW, pH)
                 self.isDragged = false
                 -- use end event
                 if self.lstEvents["pressed"] ~= nil then
-                    self.lstEvents["pressed"]("end")
+                    self.lstEvents["pressed"](self.caller, "end")
                 end
             end 
         end
