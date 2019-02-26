@@ -44,8 +44,6 @@ function love.load()
     local function move_button_pressed(pState)
         if pState == "end" then
             if tank.selected then
-                -- gather reachables cells from the map
-                reachables = map:get_reachable_cells(tank.i, tank.j, tank.current_movement)
                 tank:set_move_state()
             end
         end
@@ -102,7 +100,7 @@ function love.update(dt)
                 local moved = false
                 if tank.state == tank.states.movement then
                     -- check if a cell is matching the wanted location
-                    for _, cell in pairs(reachables) do
+                    for _, cell in pairs(tank.movement_cells) do
                         if cell.i == mouse.i and cell.j == mouse.j then
                             -- get the movement cost
                             local cost = map:get_cost(cell)
@@ -125,22 +123,57 @@ function love.draw()
     love.graphics.push()
     love.graphics.translate(map.offset.x, map.offset.y)
     local tile_size = map.tilesize
-    map:draw()
-
+    
     if tank.state == tank.states.movement then
         -- draw reachable cells
-        for _, cell in pairs(reachables) do
-            love.graphics.setColor(0,1,1,1)
-            love.graphics.rectangle("line", cell.i * tile_size, cell.j * tile_size, tile_size, tile_size)
-            love.graphics.print(cell.cost, cell.i * tile_size, cell.j * tile_size)
+        for _, cell in pairs(tank.movement_cells) do
+            -- local ratio = cell.cost / tank.current_movement
+            love.graphics.setColor(0, 1, 0, 1)
+            love.graphics.rectangle("fill", cell.i * tile_size - 1, cell.j * tile_size - 1, tile_size + 2, tile_size + 2)
+            --love.graphics.print(cell.cost, cell.i * tile_size, cell.j * tile_size)
+        end
+    elseif tank.state == tank.states.fire then
+        for i = 1, tank.range do
+            love.graphics.setColor(1, 0, 0, 1)
+            if tank.i + i < map.size then
+                love.graphics.rectangle("fill", (tank.i + i) * tile_size - 1, tank.j * tile_size - 1, tile_size + 2, tile_size + 2)
+            end
+            if tank.i - i >= 0 then
+                love.graphics.rectangle("fill", (tank.i - i) * tile_size - 1, tank.j * tile_size - 1, tile_size + 2, tile_size + 2)
+            end
+            if tank.j + i < map.size then
+                love.graphics.rectangle("fill", tank.i * tile_size - 1, (tank.j + i) * tile_size - 1, tile_size + 2, tile_size + 2)
+            end
+            if tank.j - i >= 0 then
+                love.graphics.rectangle("fill", tank.i * tile_size - 1, (tank.j - i) * tile_size - 1, tile_size + 2, tile_size + 2)
+            end
+        end
+    end
+    
+    -- enlight hovered cell
+    if mouse.i >= 0 and mouse.i < map.size and mouse.j >= 0 and mouse.j < map.size then
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.rectangle("fill", mouse.i * map.tilesize - 1, mouse.j * map.tilesize - 1, map.tilesize + 2, map.tilesize + 2)
+        if tank.state == tank.states.movement then
+            -- draw path
+            local path = nil
+            for _, cell in pairs(tank.movement_cells) do
+                if cell.i == mouse.i and cell.j == mouse.j then
+                    path = cell
+                    love.graphics.setColor(1, 0, 1, 1)
+                    love.graphics.rectangle("fill", tank.i * tile_size - 1, tank.j * tile_size - 1, tile_size + 2, tile_size + 2)
+                    break
+                end
+            end
+
+            while path ~= nil do
+                love.graphics.rectangle("fill", path.i * tile_size - 1, path.j * tile_size - 1, tile_size + 2, tile_size + 2)
+                path = path.from
+            end
         end
     end
 
-    -- enlight hovered cell
-    if mouse.i >= 0 and mouse.i < map.size and mouse.j >= 0 and mouse.j < map.size then
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.rectangle("line", mouse.i * map.tilesize, mouse.j * map.tilesize, map.tilesize, map.tilesize)
-    end
+    map:draw()
 
     tank:draw()
 

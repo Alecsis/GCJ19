@@ -3,30 +3,6 @@ local function draw(tank)
     local offset = (tile_size + tank.size) / 4
     local x = tank.i * tile_size + tank.size / 2
     local y = tank.j * tile_size + tank.size / 2
-
-    if tank.state == tank.states.move then
-        -- draw reachable cells
-        for _, cell in pairs(tank.reachables) do
-            love.graphics.setColor(0,1,1,1)
-            love.graphics.rectangle("line", cell.i * tile_size, cell.j * tile_size, tile_size, tile_size)
-        end
-    elseif tank.state == tank.states.fire then
-        for i = 1, tank.range do
-            love.graphics.setColor(1,0,0,1)
-            if tank.i + i < tank.map.size then
-                love.graphics.rectangle("line", (tank.i + i) * tile_size, tank.j * tile_size, tile_size, tile_size)
-            end
-            if tank.i - i >= 0 then
-                love.graphics.rectangle("line", (tank.i - i) * tile_size, tank.j * tile_size, tile_size, tile_size)
-            end
-            if tank.j + i < tank.map.size then
-                love.graphics.rectangle("line", tank.i * tile_size, (tank.j + i) * tile_size, tile_size, tile_size)
-            end
-            if tank.j - i >= 0 then
-                love.graphics.rectangle("line", tank.i * tile_size, (tank.j - i) * tile_size, tile_size, tile_size)
-            end
-        end
-    end
     
     -- draw tank
     love.graphics.setColor(0,0,0)
@@ -54,27 +30,34 @@ end
 
 local function new_turn(tank)
     tank:set_idle_state()
+    -- reset tank movement capacity
     tank.current_movement = tank.movement
+    -- refresh reachable cells
+    tank.movement_cells = tank.map:get_reachable_cells(tank.i, tank.j, tank.current_movement)
 end
 
 local function move(tank, pi, pj, pcost)
+    -- relocate tank to given location
     tank.i = pi
     tank.j = pj
+    -- update movement points
     tank.current_movement = tank.current_movement - pcost
+    -- refresh reachable cells
+    tank.movement_cells = tank.map:get_reachable_cells(tank.i, tank.j, tank.current_movement)
 end
 
-local function FTank(i, j, map)
+local function FTank(pi, pj, pmap)
     local tank = {}
 
     -- on grid position
-    tank.i = i
-    tank.j = j
+    tank.i = pi
+    tank.j = pj
 
     -- am I selected
     tank.selected = false
 
     -- map reference
-    tank.map = map
+    tank.map = pmap
 
     -- size of image
     tank.size = map.tilesize / 2
@@ -88,7 +71,7 @@ local function FTank(i, j, map)
     tank.state = tank.states.idle
 
     -- cells reachable
-    --tank.reachables = get_reachable_cells(tank)
+    tank.movement_cells = pmap:get_reachable_cells(pi, pj, tank.current_movement)
 
     -- interface functions
     tank.set_move_state = set_move_state
