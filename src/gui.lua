@@ -136,6 +136,7 @@ function gui.newPanel(pX, pY, pW, pH)
     myPanel.lstEvents = {}
     myPanel.isPressed = false
     myPanel.oldButtonState = false
+    myPanel.color = {1,1,1}
     -- dragging
     myPanel.draggable = false
     myPanel.dragConstraint = "none"
@@ -247,7 +248,7 @@ function gui.newPanel(pX, pY, pW, pH)
     end
 
     function myPanel:drawPanel()
-        love.graphics.setColor(1, 1, 1)
+        love.graphics.setColor(self.color)
         if self.image == nil then
             if self.circular then
                 love.graphics.circle("line", self.absoluteX, self.absoluteY, self.radius)
@@ -267,6 +268,10 @@ function gui.newPanel(pX, pY, pW, pH)
         end
         self:drawPanel()
         self:drawChildren()
+    end
+
+    function myPanel:setColor(pColor)
+        self.color = pColor
     end
 
     return myPanel
@@ -309,6 +314,7 @@ end
 
 function gui.newButton(pX, pY, pW, pH, pText, pFont, pColor)
     local myButton = gui.newPanel(pX, pY, pW, pH)
+    myButton:setColor(pColor)
     myButton.text = pText
     myButton.font = pFont
     myButton:appendChild(gui.newText(0, 0, pW, pH, pText, pFont, true, true, pColor))

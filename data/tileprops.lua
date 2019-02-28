@@ -1,6 +1,6 @@
 local tileprops = {}
 
-tileprops.tilesize = 32
+tileprops.tilesize = 32*2
 
 tileprops.tiletypes = {
   grass = 1,

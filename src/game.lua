@@ -26,32 +26,48 @@ local function update(game, dt)
     end
     if not mouse.pressed and mouse.old_pressed then mouse.released = true end
 
-    -- selected player_tank
     if mouse.clic then
+        -- is the clic on the map ?
         if mouse.i >= 0 and mouse.i < map.size and mouse.j >= 0 and mouse.j < map.size then
-            if mouse.i == player_tank.i and mouse.j == player_tank.j then
-                player_tank.selected = true
-            else
-                local moved = false
-                if player_tank.state == player_tank.states.movement then
-                    -- check if a cell is matching the wanted location
-                    for _, cell in pairs(player_tank.movement_cells) do
-                        if cell.i == mouse.i and cell.j == mouse.j then
-                            -- get the movement cost
-                            local cost = map:get_cost(cell)
-                            player_tank:move(mouse.i, mouse.j, cost)
-                            moved = true
-                        end
+            if game.play_state == game.play_states.idle then
+
+            elseif game.play_state == game.play_states.movement then
+                -- check if a cell is matching the wanted location
+                for _, cell in pairs(player_tank.movement_cells) do
+                    if cell.i == mouse.i and cell.j == mouse.j then
+                        -- get the movement cost
+                        local cost = map:get_cost(cell)
+                        player_tank:move(mouse.i, mouse.j, cost)
+                        game.play_state = game.play_states.fire
+                        break
                     end
                 end
-                player_tank:set_idle_state()
-                if not moved then player_tank.selected = false end
+            elseif game.play_state == game.play_states.fire then
+                local fire_cells = {}
+                for _, pattern in pairs(player_tank.fire_pattern) do
+                    local cell_i = player_tank.i + pattern[1]
+                    local cell_j = player_tank.j + pattern[2]
+                    if mouse.i == cell_i and mouse.j == cell_j then
+                        for _, enemy_tank in pairs(game.enemies_tanks) do
+                            if enemy_tank.i == cell_i and enemy_tank.j == cell_j then
+                                enemy_tank:take_damages(1)
+                                game.play_state = game.play_states.movement
+                                break
+                            end
+                        end
+
+                    end
+                end
             end
+
+        else
+            --game.play_state = game.play_states.idle
         end
     end
 end
 
 local function draw(game)
+    local padding = 1.5
     local map = game.map
     local mouse = game.mouse
     local player_tank = game.player_tank
@@ -60,57 +76,32 @@ local function draw(game)
     love.graphics.translate(map.offset.x, map.offset.y)
     local tile_size = map.tilesize
 
-    if player_tank.state == player_tank.states.movement then
+    if game.play_state == game.play_states.movement then
         -- draw reachable cells
         for _, cell in pairs(player_tank.movement_cells) do
             -- local ratio = cell.cost / player_tank.current_movement
             love.graphics.setColor(0, 1, 0, 1)
             love.graphics.rectangle(
                 "fill",
-                cell.i * tile_size - 1,
-                cell.j * tile_size - 1,
-                tile_size + 2,
-                tile_size + 2
+                cell.i * tile_size - padding,
+                cell.j * tile_size - padding,
+                tile_size + 2 * padding,
+                tile_size + 2 * padding
             )
             -- love.graphics.print(cell.cost, cell.i * tile_size, cell.j * tile_size)
         end
-    elseif player_tank.state == player_tank.states.fire then
-        for i = 1, player_tank.range do
-            love.graphics.setColor(1, 0, 0, 1)
-            if player_tank.i + i < map.size then
+    elseif game.play_state == game.play_states.fire then
+        love.graphics.setColor(1, 0, 0, 1)
+        for _, pattern in pairs(player_tank.fire_pattern) do
+            local cell_i = player_tank.i + pattern[1]
+            local cell_j = player_tank.j + pattern[2]
+            if cell_i >= 0 and cell_i < map.size and cell_j >= 0 and cell_j < map.size then
                 love.graphics.rectangle(
                     "fill",
-                    (player_tank.i + i) * tile_size - 1,
-                    player_tank.j * tile_size - 1,
-                    tile_size + 2,
-                    tile_size + 2
-                )
-            end
-            if player_tank.i - i >= 0 then
-                love.graphics.rectangle(
-                    "fill",
-                    (player_tank.i - i) * tile_size - 1,
-                    player_tank.j * tile_size - 1,
-                    tile_size + 2,
-                    tile_size + 2
-                )
-            end
-            if player_tank.j + i < map.size then
-                love.graphics.rectangle(
-                    "fill",
-                    player_tank.i * tile_size - 1,
-                    (player_tank.j + i) * tile_size - 1,
-                    tile_size + 2,
-                    tile_size + 2
-                )
-            end
-            if player_tank.j - i >= 0 then
-                love.graphics.rectangle(
-                    "fill",
-                    player_tank.i * tile_size - 1,
-                    (player_tank.j - i) * tile_size - 1,
-                    tile_size + 2,
-                    tile_size + 2
+                    (player_tank.i + pattern[1]) * tile_size - padding,
+                    (player_tank.j + pattern[2]) * tile_size - padding,
+                    tile_size + 2 * padding,
+                    tile_size + 2 * padding
                 )
             end
         end
@@ -121,12 +112,12 @@ local function draw(game)
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.rectangle(
             "fill",
-            mouse.i * map.tilesize - 1,
-            mouse.j * map.tilesize - 1,
-            map.tilesize + 2,
-            map.tilesize + 2
+            mouse.i * map.tilesize - padding,
+            mouse.j * map.tilesize - padding,
+            map.tilesize + 2 * padding,
+            map.tilesize + 2 * padding
         )
-        if player_tank.state == player_tank.states.movement then
+        if game.play_state == game.play_states.movement then
             -- draw path
             local path = nil
             for _, cell in pairs(player_tank.movement_cells) do
@@ -135,10 +126,10 @@ local function draw(game)
                     love.graphics.setColor(1, 0, 1, 1)
                     love.graphics.rectangle(
                         "fill",
-                        player_tank.i * tile_size - 1,
-                        player_tank.j * tile_size - 1,
-                        tile_size + 2,
-                        tile_size + 2
+                        player_tank.i * tile_size - padding,
+                        player_tank.j * tile_size - padding,
+                        tile_size + 2 * padding,
+                        tile_size + 2 * padding
                     )
                     break
                 end
@@ -146,47 +137,53 @@ local function draw(game)
             while path ~= nil do
                 love.graphics.rectangle(
                     "fill",
-                    path.i * tile_size - 1,
-                    path.j * tile_size - 1,
-                    tile_size + 2,
-                    tile_size + 2
+                    path.i * tile_size - padding,
+                    path.j * tile_size - padding,
+                    tile_size + 2 * padding,
+                    tile_size + 2 * padding
                 )
                 path = path.from
             end
         end
     end
 
-	-- render map
+    -- render map
     game.map:draw()
 
-
-	-- render enemies tanks
+    -- render enemies tanks
     for _, enemy_tank in pairs(game.enemies_tanks) do
         love.graphics.setColor(1, 1, 1, 1)
         enemy_tank:draw()
-	end
-	
-	-- render player's tank
+    end
+
+    -- render player's tank
     player_tank:draw()
 
-	love.graphics.pop()
-	
-	-- render UI
+    love.graphics.pop()
+
+    -- render UI
     game.ui_group:draw()
 end
 
-local function new_turn_button_callback(game, pstate) if pstate == "end" then game.player_tank:new_turn() end end
+local function end_turn_button_callback(game, pstate) if pstate == "end" then game:end_turn() end end
 
-local function move_button_callback(game, pstate)
-    if pstate == "end" then
-        if game.player_tank.selected then game.player_tank:set_move_state() end
-    end
+local function move_button_callback(game, pstate) if pstate == "end" then game:show_move_grid() end end
+
+local function fire_button_callback(game, pstate) if pstate == "end" then game:show_fire_grid() end end
+
+local function end_turn(game)
+    game.player_tank:new_turn()
+    game:show_move_grid()
 end
 
-local function fire_button_callback(game, pstate)
-    if pstate == "end" then
-        if game.player_tank.selected then game.player_tank:set_fire_state() end
-    end
+local function show_move_grid(game)
+    game.player_tank.selected = true
+    game.play_state = game.play_states.movement
+end
+
+local function show_fire_grid(game)
+    game.player_tank.selected = true
+    game.play_state = game.play_states.fire
 end
 
 local function FGame()
@@ -210,7 +207,12 @@ local function FGame()
     -- mouse object
     game.mouse = FMouse()
 
-    ---------------- TANKS ----------------
+    ------------ GAME STATE --------------
+    game.play_states = {move = 1, fire = 2, idle = 3,}
+    game.play_state = game.play_states.idle
+    --------------------------------------
+
+    --------------- TANKS ----------------
     -- player's tank
     game.player_tank = FTank(
         1,
@@ -222,7 +224,7 @@ local function FGame()
 
     -- enemies
     game.enemies_tanks = {}
-    local nb_enemies = 5
+    local nb_enemies = 3
     for i = 1, nb_enemies do
         enemy_tank = FTank(
             2,
@@ -234,24 +236,28 @@ local function FGame()
     end
     --------------------------------------
 
+    game.show_move_grid = show_move_grid
+    game.show_fire_grid = show_fire_grid
+    game.end_turn = end_turn
+
     ----------------- UI -----------------
     local gui = require("src.gui")
     local font = love.graphics.getFont()
     game.ui_group = gui.newNode(0, 0)
 
     -- new turn button
-    local newturn_button = gui.newButton(game.screen.w / 3, 50, 150, 50, "NEW TURN", font, {1, 1, 1})
-    newturn_button:setEvent("pressed", new_turn_button_callback, game)
-    game.ui_group:appendChild(newturn_button)
+    local end_turn_button = gui.newButton(game.screen.w * 2 / 3, 50, 150, 50, "END TURN", font, {1, 1, 1})
+    end_turn_button:setEvent("pressed", end_turn_button_callback, game)
+    game.ui_group:appendChild(end_turn_button)
 
     -- move button
-    local move_button = gui.newButton(game.screen.w / 2, 50, 150, 50, "MOVE", font, {1, 1, 1})
+    local move_button = gui.newButton(game.screen.w / 3, 50, 150, 50, "MOVE", font, {0, 1, 0})
     move_button:setEvent("pressed", move_button_callback, game)
     move_button_callback(game, "end")
     game.ui_group:appendChild(move_button)
 
     -- fire button
-    local fire_button = gui.newButton(2 * game.screen.w / 3, 50, 150, 50, "FIRE", font, {1, 1, 1})
+    local fire_button = gui.newButton(game.screen.w / 2, 50, 150, 50, "FIRE", font, {1, 0, 0})
     fire_button:setEvent("pressed", fire_button_callback, game)
     game.ui_group:appendChild(fire_button)
     --------------------------------------

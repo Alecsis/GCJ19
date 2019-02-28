@@ -12,9 +12,9 @@ function love.draw() game:draw() end
 
 function love.keypressed(k)
     if k == "escape" then love.event.quit() end
-    if k == "m" then player_tank:set_move_state() end
-    if k == "f" then player_tank:set_fire_state() end
-    if k == "space" then player_tank:new_turn() end
+    if k == "m" then game:show_move_grid() end
+    if k == "f" then game:show_fire_grid() end
+    if k == "space" then game.player_tank:new_turn() end
 end
 
 function love.keyreleased(k) end

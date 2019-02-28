@@ -6,7 +6,7 @@ local function draw(map)
       local x = (j - 1) * map.tilesize
       local id = map.grid[i][j]
       love.graphics.setColor(map.tilecolor[id])
-      local padding = 1
+      local padding = 1.5
       love.graphics.rectangle("fill", x + padding, y + padding, map.tilesize - 2 * padding, map.tilesize - 2 * padding)
       --love.graphics.setColor(0.2, 0.2, 0.2)
       --love.graphics.rectangle("line", x, y, map.tilesize, map.tilesize)
@@ -199,19 +199,6 @@ local function FMap(screen)
   map.tilemovement = tileprops.tilemovement
 
   map.grid = mapprops.level
-
-  -- map construction
-  --[[map.grid = {}
-    for i = 1, map.size do
-    map.grid[i] = {}
-        local str = ""
-        for j = 1, map.size do
-            local id = math.random(1,3)
-            map.grid[i][j] = id
-            str = str .. id .. ", "
-        end 
-        print(str)
-    end]]
 
   -- map screen offset
   map.offset = {}
