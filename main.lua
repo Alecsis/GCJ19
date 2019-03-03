@@ -1,6 +1,7 @@
 local game
 
 function love.load()
+    love.graphics.setLineWidth(1.5)
     math.randomseed(os.time())
     local FGame = require("src.game")
     game = FGame()
