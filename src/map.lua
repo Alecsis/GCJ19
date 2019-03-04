@@ -338,8 +338,8 @@ local function FMap(game, screen)
 
     -- map screen offset
     map.offset = {}
-    map.offset.x = (screen.w - map.totalsize) / 2
-    map.offset.y = (screen.h - map.totalsize) / 2
+    map.offset.x = 0--(screen.w - map.totalsize) / 2
+    map.offset.y = 64--(screen.h - map.totalsize) / 2
 
     -- interface functions
     map.draw = draw

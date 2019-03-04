@@ -14,6 +14,9 @@ local function FMouse()
     mouse.old_pressed = false
     mouse.x_clic = 0
     mouse.y_clic = 0
+    -- game specific attributes
+    mouse.i = 0
+    mouse.j = 0
 
     mouse.set_mouse_position = set_mouse_position
 

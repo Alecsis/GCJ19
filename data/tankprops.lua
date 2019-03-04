@@ -5,7 +5,7 @@ tankprops.range = 5
 tankprops.health = 3
 tankprops.vision = 3
 
-tankprops.imgs = {"Assets/Ally_Spritesheet.png", "Assets/Enemy_Spritesheet.png"}
+tankprops.imgs = {"assets/Ally_Spritesheet.png", "assets/Enemy_Spritesheet.png"}
 
 tankprops.spritesheet = {
     frame_width = 48,
