@@ -1,6 +1,4 @@
 local function draw(tank)
-    if tank.dead then return end
-
     local tile_size = tank.map.tilesize
     local offset = (tile_size + tank.size) / 4
     local x = tank.i * tile_size + tile_size / 2
@@ -71,6 +69,10 @@ end
 local function take_damages(tank, pdmg)
     tank.current_health = tank.current_health - pdmg
     tank.health_ratio = tank.current_health / tank.health
+    if tank.current_health <= 0 then
+        tank.will_die = true
+        tank:play_animation(tank.anim_types.dead)
+    end
 end
 
 local function new_turn(tank)
@@ -149,6 +151,7 @@ local function FTank(pteam, pi, pj, pmap)
     tank.vision = tankprops.vision
     tank.direction = 1
     tank.did_play = false
+    tank.will_die = false
     -- blink if tank hasn't play
     tank.blink = false
     tank.blink_tmr = 0

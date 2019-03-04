@@ -7,11 +7,7 @@ local FTank = require("src.tank")
 local function end_turn(game)
     game:deselect_unit()
     game.play_state = game.play_states.enemies
-    game:ai_logic()
-    if game.game_state ~= game.game_states.lose then
-        game:new_turn()
-        for _, tank in pairs(game.allied_tanks) do tank:set_blink(true) end
-    end
+    game.end_turn_tmr = 0.5
 end
 
 local function new_turn(game)
@@ -200,6 +196,17 @@ local function update(game, dt)
             end
         end
 
+        if game.play_state == game.play_states.enemies then
+            game.end_turn_tmr = game.end_turn_tmr - dt
+            if game.end_turn_tmr <= 0 then
+                game:ai_logic()
+                if game.game_state ~= game.game_states.lose then
+                    game:new_turn()
+                    for _, tank in pairs(game.allied_tanks) do tank:set_blink(true) end
+                end
+            end
+        end
+
         if mouse.clic then
             -- is the clic on the map ?
             if map:in_bounds(mouse.i, mouse.j) then
@@ -207,7 +214,7 @@ local function update(game, dt)
                     game:deselect_unit()
                     -- if a unit was clicked, select it
                     for _, tank in pairs(game.allied_tanks) do
-                        if tank.i == mouse.i and tank.j == mouse.j then game:select_unit(tank) end
+                        if tank.i == mouse.i and tank.j == mouse.j and tank.will_die == false then game:select_unit(tank) end
                     end
                 elseif game.play_state == game.play_states.player_movement then
                     assert(game.selected_unit ~= nil)
@@ -238,7 +245,7 @@ local function update(game, dt)
                         -- did we move all units
                         local all_unit_played = true
                         for _, tank in pairs(game.allied_tanks) do
-                            if tank.did_play == false and tank.dead == false then
+                            if tank.did_play == false and tank.will_die == false then
                                 all_unit_played = false
                                 break
                             end
@@ -298,7 +305,7 @@ local function update(game, dt)
                         -- did we move all units
                         local all_unit_played = true
                         for _, tank in pairs(game.allied_tanks) do
-                            if tank.did_play == false and tank.dead == false then
+                            if tank.did_play == false and tank.will_die == false then
                                 all_unit_played = false
                                 break
                             end
@@ -329,9 +336,7 @@ local function update(game, dt)
 
             if tank.dead and tank.anim_over then
                 table.remove(game.enemies_tanks, i)
-                if #game.enemies_tanks == 0 then
-                    game.game_state = game.game_states.win
-                end
+                if #game.enemies_tanks == 0 then game.game_state = game.game_states.win end
             end
         end
 
@@ -341,9 +346,7 @@ local function update(game, dt)
 
             if tank.dead and tank.anim_over then
                 table.remove(game.allied_tanks, i)
-                if #game.allied_tanks == 0 then
-                    game.game_state = game.game_states.lose
-                end
+                if #game.allied_tanks == 0 then game.game_state = game.game_states.lose end
             end
         end
     end
