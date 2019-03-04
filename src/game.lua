@@ -69,13 +69,15 @@ local function update(game, dt)
                         -- get the movement cost
                         local cost = map:get_cost(cell)
                         selected:move(mouse.i, mouse.j, cost)
+                        -- check victory
+                        if cell_i == map.objectives[2][1] - 1 and cell_j == map.objectives[2][2] - 1 then love.event.quit() end
                         break
                     end
                 end
                 if did_move then
                     game:end_turn()
                 else
-                    game.play_state = game.play_state.player
+                    game.play_state = game.play_states.player
                 end
             elseif game.play_state == game.play_states.player_fire then
                 assert(game.selected_unit ~= nil)
@@ -88,8 +90,6 @@ local function update(game, dt)
                     local from_i = selected.i
                     local from_j = selected.j
                     if mouse.i == cell_i and mouse.j == cell_j then
-                        -- fire animation
-                        selected:play_animation(selected.anim_types.fire)
                         -- rotate tank
                         selected.rot = math.atan2(cell_j - from_j, cell_i - from_i)
                         -- find if an enemy is hit
@@ -111,6 +111,8 @@ local function update(game, dt)
                     end
                 end
                 if did_fire then
+                    -- fire animation
+                    selected:play_animation(selected.anim_types.fire)
                     game:end_turn()
                 else
                     game.play_state = game.play_states.player
@@ -254,7 +256,7 @@ local function FGame()
     )
 
     -- map construction
-    game.map = FMap(game.screen)
+    game.map = FMap(game, game.screen)
 
     game.arrow = love.graphics.newImage("assets/arrows.png")
 
@@ -306,20 +308,6 @@ local function FGame()
     local font = love.graphics.getFont()
     game.ui_group = gui.newNode(0, 0)
 
-    -- new turn button
-    --[[local end_turn_button = gui.newButton(
-        game.screen.w * 2 / 3,
-        50,
-        150,
-        50,
-        "END TURN",
-        font,
-        {1, 1, 1}
-    )
-    end_turn_button:setEvent("pressed", end_turn_button_callback, game)
-    game.ui_group:appendChild(end_turn_button)
-    ]]
-
     -- move button
     local move_button = gui.newButton(game.screen.w / 3, 50, 150, 50, "MOVE", font, {0, 1, 0})
     move_button:setEvent("pressed", move_button_callback, game)
@@ -327,6 +315,7 @@ local function FGame()
     move_button:setImage(love.graphics.newImage("assets/UI_Button_Move.png"))
     game.ui_group:appendChild(move_button)
     game.move_button = move_button
+    move_button:setVisible(false)
 
     -- fire button
     local fire_button = gui.newButton(game.screen.w / 2, 50, 150, 50, "FIRE", font, {1, 0, 0})
@@ -334,6 +323,7 @@ local function FGame()
     fire_button:setImage(love.graphics.newImage("assets/UI_Button_Shot.png"))
     game.fire_button = fire_button
     game.ui_group:appendChild(fire_button)
+    fire_button:setVisible(false)
     --------------------------------------
 
     -- interface methods

@@ -103,6 +103,13 @@ local function get_tilemovement(map, pi, pj)
     return map.tilemovement[id]
 end
 
+local function entity_in_cell(map, pi, pj)
+    local count = 0
+    for _, tank in pairs(map.game.allied_tanks) do if tank.i == pi and tank.j == pj then count = count + 1 end end
+    for _, tank in pairs(map.game.enemies_tanks) do if tank.i == pi and tank.j == pj then count = count + 1 end end
+    return count
+end
+
 -- gather all reachables cells from a certain position 
 -- with respect to a given movement
 local function get_reachable_cells(map, pi, pj, pmovement)
@@ -171,7 +178,7 @@ local function get_reachable_cells(map, pi, pj, pmovement)
                 end
             end
             -- only add path if it is new
-            if not already_explored and not map:is_solid(i+1,j+1) then
+            if not already_explored and not map:is_solid(i + 1, j + 1) and map:entity_in_cell(i, j) == 0 then
                 table.insert(reachables, curr)
 
                 -- add to exploration adjacent exploration
@@ -222,15 +229,7 @@ local function get_tank_vision(map, tank)
         {1, -1},
         {2, -1},
     }
-    pattern[2] = {
-        {0, 0},
-        {0, 1},
-        {1, 0},
-        {1, 1},
-        {2, 1},
-        {2, 1},
-        {2, 2},
-    }
+    pattern[2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}, {2, 1}, {2, 1}, {2, 2},}
     pattern[3] = {
         {0, 0},
         {0, 1},
@@ -292,11 +291,9 @@ local function get_tank_vision(map, tank)
 
 end
 
-local function in_bounds(map, pi, pj)
-    return pi >= 0 and pi < map.size and pj >= 0 and pj < map.size
-end
+local function in_bounds(map, pi, pj) return pi >= 0 and pi < map.size and pj >= 0 and pj < map.size end
 
-local function FMap(screen)
+local function FMap(game, screen)
     local map = {}
 
     local mapprops = require("data.mapprops")
@@ -311,17 +308,28 @@ local function FMap(screen)
     map.solid = tileprops.solid
     map.solid_obj = objprops.solid
     map.tiletypes = tileprops.tiletypes
+    map.game = game
 
     map.grid = mapprops.level.terrain
     map.tanks = mapprops.level.tanks
     map.objects = mapprops.level.objects
 
+    map.objectives = {}
+
     map.obj_grid = {}
     for j = 1, #map.grid do
         map.obj_grid[j] = {}
-        for i = 1, #map.grid[j] do map.obj_grid[j][i] = map.objects[j][i] end
+        for i = 1, #map.grid[j] do
+            local obj_id = map.objects[j][i]
+            map.obj_grid[j][i] = obj_id
+            if obj_id == 2 then
+                map.objectives[1] = {i, j}
+            elseif obj_id == 3 then
+                map.objectives[2] = {i, j}
+            end
+        end
     end
-    
+
     map.imgs = {}
     map.imgs.tiles = {}
     map.imgs.objects = {}
@@ -344,6 +352,7 @@ local function FMap(screen)
     map.get_cost = get_cost
     map.get_tank_vision = get_tank_vision
     map.in_bounds = in_bounds
+    map.entity_in_cell = entity_in_cell
 
     return map
 end

@@ -21,11 +21,6 @@ tankprops.anim_types = {
 }
 
 tankprops.animations = {
-    --[[ [tankprops.anim_types.idle] = {
-        frames = {1},
-        speed = 1/12,
-        next = nil,
-    },]]
     [tankprops.anim_types.idle] = {
         frames = {1, 2, 3, 4, 5, 6},
         speed = 1/8,

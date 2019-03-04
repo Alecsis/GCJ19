@@ -145,6 +145,7 @@ local function FTank(pteam, pi, pj, pmap)
     tank.move = move
     tank.take_damages = take_damages
     tank.play_animation = play_animation
+    
 
     return tank
 end
