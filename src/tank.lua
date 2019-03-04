@@ -10,6 +10,16 @@ local function draw(tank)
     -- love.graphics.draw(tank.img, x, y, (tank.direction - 1) * math.pi / 2, 1, 1, tank.size / 2, tank.size / 2)
     -- love.graphics.draw(tank.img, x, y, tank.rot, 1, 1, tank.size / 2, tank.size / 2)
     local quad = tank.quads[tank.current_anim][tank.frame]
+
+    --[[if tank.blink == true then
+        if tank.blink_state == true then
+            love.graphics.setBlendMode("add", "alphamultiply")
+            local a = 0.2
+            love.graphics.setColor(a,a,a)
+        else
+            love.graphics.setColor(1, 1, 1)
+        end
+    end]]
     love.graphics.draw(
         tank.img,
         quad,
@@ -21,6 +31,7 @@ local function draw(tank)
         tank.size / 2,
         tank.size / 2
     )
+    --love.graphics.setBlendMode("alpha")
 end
 
 local function update(tank, dt)
@@ -36,6 +47,22 @@ local function update(tank, dt)
             tank.current_anim = anim.next
         end
     end
+    -- update blink
+    if tank.blink == true then
+        tank.blink_tmr = tank.blink_tmr + dt
+        if tank.blink_state == false then
+            if tank.blink_tmr > tank.blink_speed * (1 - tank.blink_ratio) then
+                tank.blink_state = not tank.blink_state
+                tank.blink_tmr = 0
+            end
+
+        else
+            if tank.blink_tmr > tank.blink_speed * tank.blink_ratio then
+                tank.blink_state = not tank.blink_state
+                tank.blink_tmr = 0
+            end
+        end
+    end
 end
 
 local function take_damages(tank, pdmg)
@@ -47,6 +74,13 @@ local function new_turn(tank)
     -- reset tank movement capacity
     tank.current_movement = tank.movement
 
+    -- refresh reachable cells
+    tank:refresh_reachable()
+
+    tank.did_play = false
+end
+
+local function refresh_reachable(tank)
     -- refresh reachable cells
     tank.movement_cells = tank.map:get_reachable_cells(tank.i, tank.j, tank.current_movement)
 end
@@ -73,6 +107,14 @@ local function play_animation(tank, panim_type)
     tank.frame = 1
     tank.current_anim = panim_type
     tank.anim_timer = 0
+end
+
+local function set_blink(tank, pblink)
+    if pblink ~= tank.blink then
+        tank.blink = pblink
+        tank.blink_tmr = 0
+        tank.blink_state = false
+    end
 end
 
 local function FTank(pteam, pi, pj, pmap)
@@ -103,6 +145,13 @@ local function FTank(pteam, pi, pj, pmap)
     tank.rot = 0
     tank.vision = tankprops.vision
     tank.direction = 1
+    tank.did_play = false
+    -- blink if tank hasn't play
+    tank.blink = false
+    tank.blink_tmr = 0
+    tank.blink_speed = 1
+    tank.blink_ratio = 1 / 2
+    tank.blink_state = true
 
     -- animations
     tank.anim_types = tankprops.anim_types
@@ -145,7 +194,8 @@ local function FTank(pteam, pi, pj, pmap)
     tank.move = move
     tank.take_damages = take_damages
     tank.play_animation = play_animation
-    
+    tank.refresh_reachable = refresh_reachable
+    tank.set_blink = set_blink
 
     return tank
 end

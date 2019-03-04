@@ -81,14 +81,38 @@ local function update(game, dt)
                         -- get the movement cost
                         local cost = map:get_cost(cell)
                         selected:move(mouse.i, mouse.j, cost)
+                        -- sleep the tank
+                        selected.did_play = true
+                        selected:set_blink(false)
                         -- check victory
                         if cell_i == map.objectives[2][1] - 1 and cell_j == map.objectives[2][2] - 1 then love.event.quit() end
+                        -- refresh cells for each tank
+                        for _2, tank2 in pairs(game.allied_tanks) do tank2:refresh_reachable() end
+                        for _2, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
                         break
                     end
                 end
+                -- check if the turn is over if tank did move
                 if did_move then
-                    game:end_turn()
+                    -- did we move all units
+                    local all_unit_played = true
+                    for _, tank in pairs(game.allied_tanks) do
+                        if tank.did_play == false then
+                            all_unit_played = false
+                            break
+                        end
+                    end
+                    -- all unit played : next turn
+                    if all_unit_played == true then
+                        game:end_turn()
+                    else
+                        -- if an unit hasn't played, go back to player state
+                        game:deselect_unit()
+                        game.play_state = game.play_states.player
+                    end
                 else
+                    -- if we didn't move, go back to player state
+                    game:deselect_unit()
                     game.play_state = game.play_states.player
                 end
             elseif game.play_state == game.play_states.player_fire then
@@ -108,8 +132,13 @@ local function update(game, dt)
                         for _, enemy_tank in pairs(game.enemies_tanks) do
                             if enemy_tank.i == cell_i and enemy_tank.j == cell_j then
                                 did_fire = true
+                                -- sleep the tank
+                                selected.did_play = true
+                                selected:set_blink(false)
                                 -- apply damages
                                 enemy_tank:take_damages(1)
+                                for _, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
+                                for _, tank2 in pairs(game.allied_tanks) do tank2:refresh_reachable() end
                                 -- animation
                                 if enemy_tank.current_health > 0 then
                                     enemy_tank:play_animation(enemy_tank.anim_types.hit)
@@ -125,9 +154,25 @@ local function update(game, dt)
                 if did_fire then
                     -- fire animation
                     selected:play_animation(selected.anim_types.fire)
-                    game:end_turn()
+                    -- did we move all units
+                    local all_unit_played = true
+                    for _, tank in pairs(game.allied_tanks) do
+                        if tank.did_play == false then
+                            all_unit_played = false
+                            break
+                        end
+                    end
+                    -- all unit played : next turn
+                    if all_unit_played == true then
+                        game:end_turn()
+                    else
+                        -- if an unit hasn't played, go back to player state
+                        game.play_state = game.play_states.player
+                        game:deselect_unit()
+                    end
                 else
                     game.play_state = game.play_states.player
+                    game:deselect_unit()
                 end
             end
 
@@ -136,8 +181,25 @@ local function update(game, dt)
         end
     end
 
-    for _, tank in pairs(game.enemies_tanks) do tank:update(dt) end
-    for _, tank in pairs(game.allied_tanks) do tank:update(dt) end
+    -- update /remove tanks
+    for i = #game.enemies_tanks, 1, -1 do
+        local tank = game.enemies_tanks[i]
+        tank:update(dt)
+
+        --[[if tank.dead then
+            table.remove(game.enemies_tanks, i)
+        end]]
+    end
+
+    for i = #game.allied_tanks, 1, -1 do
+        local tank = game.allied_tanks[i]
+        tank:update(dt)
+
+        --[[if tank.dead then
+            table.remove(game.allied_tanks, i)
+        end]]
+    end
+
 end
 
 local function draw(game)
@@ -202,6 +264,21 @@ local function draw(game)
         )
     end
 
+    -- draw info around idle units
+    love.graphics.setColor(0.8, 1, 0.6)
+    for _, tank in pairs(game.allied_tanks) do
+        if tank.did_play == false then
+            if tank.blink == true and tank.blink_state == true then
+                love.graphics.draw(
+                    game.cadre,
+                    tank.i * map.tilesize,
+                    tank.j * map.tilesize
+                )
+            end
+        end
+    end
+
+    -- draw selector around selected unit
     if game.selected_unit ~= nil then
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.draw(
@@ -242,7 +319,9 @@ end
 local function end_turn(game)
     game:deselect_unit()
     game.play_state = game.play_states.enemies
+    game:ai_logic()
     game:new_turn() -- TO REMOVE !!!!!!!!!!
+    for _, tank in pairs(game.allied_tanks) do tank:set_blink(true) end
 end
 
 local function new_turn(game)
@@ -251,14 +330,48 @@ local function new_turn(game)
     for _, tank in pairs(game.allied_tanks) do tank:new_turn() end
 end
 
-local function show_move_grid(game) game.play_state = game.play_states.player_movement end
+local function show_move_grid(game)
+    assert(game.selected_unit ~= nil)
+    game.play_state = game.play_states.player_movement
+    game.selected_unit:refresh_reachable()
+end
 
 local function show_fire_grid(game) game.play_state = game.play_states.player_fire end
 
+local function ai_logic(game)
+    -- player camp to defend
+    local obj_i = game.map.objectives[1][1] - 1
+    local obj_j = game.map.objectives[1][2] - 1
+    -- loop over all enemies tanks to update them
+    for _, tank in pairs(game.enemies_tanks) do
+        local movement_cells = tank.movement_cells
+        if #movement_cells > 0 then
+            -- find the cell that is closest to the objective
+            local closer_cell = movement_cells[1]
+            local closer_dst2 = math.pow(closer_cell.i - obj_i, 2) + math.pow(closer_cell.j - obj_j, 2)
+            -- loop over reachable cells
+            for _, cell in pairs(movement_cells) do
+                local dst2 = math.pow(cell.i - obj_i, 2) + math.pow(cell.j - obj_j, 2)
+                -- if it's closer, store it
+                if dst2 < closer_dst2 then
+                    closer_dst2 = dst2
+                    closer_cell = cell
+                end
+            end
+            -- jump to it
+            tank:move(closer_cell.i, closer_cell.j, 0)
+            -- refresh cells for each tank
+            for _2, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
+        end
+    end
+end
+
 local function select_unit(game, punit)
     game.selected_unit = punit
-    game.move_button:setVisible(true)
-    game.fire_button:setVisible(true)
+    if punit.did_play == false then
+        game.move_button:setVisible(true)
+        game.fire_button:setVisible(true)
+    end
 end
 
 local function deselect_unit(game)
@@ -310,6 +423,7 @@ local function FGame()
             if tank_id == 1 then
                 local ally_tank = FTank(1, j - 1, i - 1, game.map)
                 ally_tank.rot = math.pi / 2
+                ally_tank:set_blink(true)
                 table.insert(game.allied_tanks, ally_tank)
             elseif tank_id == 2 then
                 local enemy_tank = FTank(2, j - 1, i - 1, game.map)
@@ -355,6 +469,7 @@ local function FGame()
     game.deselect_unit = deselect_unit
     game.new_turn = new_turn
     game.end_turn = end_turn
+    game.ai_logic = ai_logic
 
     return game
 end

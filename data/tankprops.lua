@@ -1,6 +1,6 @@
 local tankprops = {}
 
-tankprops.movement = 2
+tankprops.movement = 1
 tankprops.range = 5
 tankprops.health = 3
 tankprops.vision = 3

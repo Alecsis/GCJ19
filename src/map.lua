@@ -105,8 +105,8 @@ end
 
 local function entity_in_cell(map, pi, pj)
     local count = 0
-    for _, tank in pairs(map.game.allied_tanks) do if tank.i == pi and tank.j == pj then count = count + 1 end end
-    for _, tank in pairs(map.game.enemies_tanks) do if tank.i == pi and tank.j == pj then count = count + 1 end end
+    for _, tank in pairs(map.game.allied_tanks) do if tank.dead == false and tank.i == pi and tank.j == pj then count = count + 1 end end
+    for _, tank in pairs(map.game.enemies_tanks) do if tank.dead == false  and tank.i == pi and tank.j == pj then count = count + 1 end end
     return count
 end
 
