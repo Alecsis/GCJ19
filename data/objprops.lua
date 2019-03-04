@@ -24,8 +24,8 @@ objprops.imgpaths = {
   [objprops.tiletypes.mountain] = "assets/Tileset_Mountain.png",
   --[objprops.tiletypes.goal_blue] = "assets/Goal_Blue-export.png",
   --[objprops.tiletypes.goal_red] = "assets/Goal_Red-export.png",
-  [objprops.tiletypes.goal_blue] = "assets/UI_Obj_Blue.png",
-  [objprops.tiletypes.goal_red] = "assets/UI_Obj_Red.png",
+  [objprops.tiletypes.goal_blue] = "assets/UI_Target_Shot.png",
+  [objprops.tiletypes.goal_red] = "assets/UI_Target_Move.png",
 }
 
 

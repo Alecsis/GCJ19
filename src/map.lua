@@ -21,7 +21,12 @@ local function draw(map)
         for j = 1, map.size do
             local x = (j - 1) * map.tilesize
             local id = map.obj_grid[i][j]
-            if id ~= 0 then love.graphics.draw(map.imgs.objects[id], x, y) end
+            if id == 2 or id == 3 then
+                local quad = map.objective_quads[map.objective_frame]
+                love.graphics.draw(map.imgs.objects[id], quad, x, y)
+            elseif id ~= 0 then
+                love.graphics.draw(map.imgs.objects[id], x, y)
+            end
         end
     end
 end
@@ -105,8 +110,12 @@ end
 
 local function entity_in_cell(map, pi, pj)
     local count = 0
-    for _, tank in pairs(map.game.allied_tanks) do if tank.dead == false and tank.i == pi and tank.j == pj then count = count + 1 end end
-    for _, tank in pairs(map.game.enemies_tanks) do if tank.dead == false  and tank.i == pi and tank.j == pj then count = count + 1 end end
+    for _, tank in pairs(map.game.allied_tanks) do
+        if tank.dead == false and tank.i == pi and tank.j == pj then count = count + 1 end
+    end
+    for _, tank in pairs(map.game.enemies_tanks) do
+        if tank.dead == false and tank.i == pi and tank.j == pj then count = count + 1 end
+    end
     return count
 end
 
@@ -291,6 +300,15 @@ local function get_tank_vision(map, tank)
 
 end
 
+local function update(map, dt)
+    map.objective_tmr = map.objective_tmr + dt
+    if map.objective_tmr > map.objective_speed then
+        map.objective_frame = map.objective_frame + 1
+        map.objective_tmr = 0
+        if map.objective_frame > #map.objective_frames then map.objective_frame = 1 end
+    end
+end
+
 local function in_bounds(map, pi, pj) return pi >= 0 and pi < map.size and pj >= 0 and pj < map.size end
 
 local function FMap(game, screen)
@@ -336,12 +354,24 @@ local function FMap(game, screen)
     for id, path in pairs(tileprops.imgpaths) do map.imgs.tiles[id] = love.graphics.newImage(path) end
     for id, path in pairs(objprops.imgpaths) do map.imgs.objects[id] = love.graphics.newImage(path) end
 
+    map.objective_frame = 1
+    map.objective_frames = {1, 2, 3, 4}
+    map.objective_tmr = 0
+    map.objective_speed = 1 / 8
+    map.objective_quads = {}
+    for i = 1, #map.objective_frames do
+        local x = (i - 1) * map.tilesize
+        local quad = love.graphics.newQuad(x, 0, map.tilesize, map.tilesize, #map.objective_frames * map.tilesize, map.tilesize)
+        map.objective_quads[i] = quad
+    end
+
     -- map screen offset
     map.offset = {}
-    map.offset.x = 0--(screen.w - map.totalsize) / 2
-    map.offset.y = 64--(screen.h - map.totalsize) / 2
+    map.offset.x = 0 -- (screen.w - map.totalsize) / 2
+    map.offset.y = 64 -- (screen.h - map.totalsize) / 2
 
     -- interface functions
+    map.update = update
     map.draw = draw
     map.get = get
     map.get_obj = get_obj

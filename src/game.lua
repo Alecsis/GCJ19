@@ -38,34 +38,16 @@ local function fire_button_callback(game, pstate)
     end
 end
 
+local function new_game_button_callback(game, pstate)
+    if pstate == "end" then game.game_state = game.game_states.play end
+end
+
 local function new_game(game)
-    -- screen dimensions
-    game.screen = FScreen(
-        love.graphics.getWidth(),
-        love.graphics.getHeight()
-    )
 
     -- map construction
     game.map = FMap(game, game.screen)
     local mapwidth = game.map.tilesize * game.map.size
     local mapheight = game.map.tilesize * game.map.size
-
-    -- mouse object
-    game.mouse = FMouse()
-    game.cadre = love.graphics.newImage("assets/UI_Tile.png")
-
-    ------------ GAME STATE --------------
-    game.game_states = {splash = 1, play = 2, win = 3, lose = 4,}
-    game.game_state = game.game_states.splash
-
-    game.play_states = {
-        player = 1,
-        ennemies = 2,
-        player_movement = 3,
-        player_fire = 4
-    }
-    game.play_state = game.play_states.player
-    --------------------------------------
 
     --------------- TANKS ----------------
     local obj_grid = game.map.objects
@@ -100,19 +82,35 @@ local function new_game(game)
     ----------------- UI -----------------
     local gui = require("src.gui")
     local font = love.graphics.getFont()
-    game.ui_group = gui.newNode(game.map.offset.x, 0)
+    game.play_ui_group = gui.newNode(game.map.offset.x, 0)
+    game.menu_ui_group = gui.newNode(0, 0)
+
+    -- play game button
+    local play_game_button = gui.newButton(
+        game.screen.w * 0.5,
+        game.screen.h * 0.52,
+        150,
+        50,
+        "NEW_TURN",
+        font,
+        {0, 1, 0}
+    )
+    play_game_button:setImage(love.graphics.newImage("assets/start_game_btn.png"))
+    game.menu_ui_group:appendChild(play_game_button)
+    play_game_button:setEvent("pressed", new_game_button_callback, game)
+    game.play_game_button = play_game_button
 
     -- blank button
     local new_turn_button = gui.newButton(mapwidth / 2, 32, 150, 50, "NEW_TURN", font, {0, 1, 0})
     new_turn_button:setImage(love.graphics.newImage("assets/new_btn_end_turn.png"))
-    game.ui_group:appendChild(new_turn_button)
+    game.play_ui_group:appendChild(new_turn_button)
     game.new_turn_button = new_turn_button
 
     -- move button
     local move_button = gui.newButton(mapwidth / 4, 32, 150, 50, "MOVE", font, {0, 1, 0})
     move_button:setEvent("pressed", move_button_callback, game)
     move_button:setImage(love.graphics.newImage("assets/UI_Button_Move2.png"))
-    game.ui_group:appendChild(move_button)
+    game.play_ui_group:appendChild(move_button)
     game.move_button = move_button
     move_button:setVisible(false)
 
@@ -121,14 +119,12 @@ local function new_game(game)
     fire_button:setEvent("pressed", fire_button_callback, game)
     fire_button:setImage(love.graphics.newImage("assets/UI_Button_Shot2.png"))
     game.fire_button = fire_button
-    game.ui_group:appendChild(fire_button)
+    game.play_ui_group:appendChild(fire_button)
     fire_button:setVisible(false)
     --------------------------------------
 end
 
 local function update(game, dt)
-    -- update gui
-    game.ui_group:update(dt)
 
     -- mouse routine
     local mouse = game.mouse
@@ -147,22 +143,29 @@ local function update(game, dt)
 
     -- game states
     if game.game_state == game.game_states.splash then
+        game.menu_ui_group:update(dt)
         if love.keyboard.isDown('space') or love.keyboard.isDown('return') then
             game:new_game()
             game.game_state = game.game_states.play
         end
     elseif game.game_state == game.game_states.win then
+        --game.menu_ui_group:update(dt)
         if love.keyboard.isDown('space') or love.keyboard.isDown('return') then
             game:new_game()
             game.game_state = game.game_states.play
         end
     elseif game.game_state == game.game_states.lose then
+        --game.menu_ui_group:update(dt)
         if love.keyboard.isDown('space') or love.keyboard.isDown('return') then
             game:new_game()
             game.game_state = game.game_states.play
         end
     elseif game.game_state == game.game_states.play then
+        -- update gui
+        game.play_ui_group:update(dt)
+
         local map = game.map
+        map:update(dt)
         local i = math.floor((mouse.x - map.offset.x) / map.tilesize)
         local j = math.floor((mouse.y - map.offset.y) / map.tilesize)
         mouse.i = i
@@ -356,11 +359,60 @@ end
 local function draw(game)
     love.graphics.setColor(1, 1, 1)
     if game.game_state == game.game_states.splash then
-        love.graphics.print("Press space to play")
+        love.graphics.draw(game.titlescreen)
+        love.graphics.setFont(game.font)
+        love.graphics.printf(
+            "Press space to play",
+            0,
+            game.screen.h - game.fontsize - 10,
+            game.screen.w,
+            "center"
+        )
+        love.graphics.setFont(game.font_title)
+        love.graphics.printf(
+            "- CheckTanks -",
+            0,
+            game.screen.w / 2 - game.fontsize / 2,
+            game.screen.w,
+            "center"
+        )
+        game.menu_ui_group:draw()
     elseif game.game_state == game.game_states.win then
-        love.graphics.print("You won ! Press space to play again or escape to exit")
+        love.graphics.draw(game.gameover)
+        love.graphics.setFont(game.font)
+        love.graphics.printf(
+            "Press space to play",
+            0,
+            game.screen.h - game.fontsize - 10,
+            game.screen.w,
+            "center"
+        )
+        love.graphics.printf(
+            "You won !",
+            0,
+            game.fontsize / 2,
+            game.screen.w,
+            "center"
+        )
+        --game.menu_ui_group:draw()
     elseif game.game_state == game.game_states.lose then
-        love.graphics.print("You lost ! Press space to play again or escape to exit")
+        love.graphics.draw(game.gameover)
+        love.graphics.setFont(game.font)
+        love.graphics.printf(
+            "Press space to play",
+            0,
+            game.screen.h - game.fontsize - 10,
+            game.screen.w,
+            "center"
+        )
+        love.graphics.printf(
+            "You lost !",
+            0,
+            game.fontsize / 2,
+            game.screen.w,
+            "center"
+        )
+        --game.menu_ui_group:draw()
     elseif game.game_state == game.game_states.play then
 
         local padding = 1.5
@@ -447,18 +499,11 @@ local function draw(game)
             )
         end
 
-        -- hide small bottom of the map
-        love.graphics.setColor(0, 0, 0)
-        local size = map.size
-        local to_x = size * map.tilesize
-        local to_y = (size + 1 / 2) * map.tilesize
-        love.graphics.rectangle("fill", 0, to_y, to_x, map.tilesize / 2)
-
         -- translation off
         love.graphics.pop()
 
         -- render UI
-        game.ui_group:draw()
+        game.play_ui_group:draw()
     end
 end
 
@@ -469,54 +514,58 @@ local function ai_logic(game)
     local obj_j = game.map.objectives[1][2] - 1
     -- loop over all enemies tanks to update them
     for _, tank in pairs(game.enemies_tanks) do
-
-        local player_in_range = nil
-        local fire_cells = tank.fire_pattern
-        for _, pattern in pairs(fire_cells) do
-            local cell_i = tank.i + pattern[1]
-            local cell_j = tank.j + pattern[2]
-            for _, ally_tank in pairs(game.allied_tanks) do
-                if ally_tank.i == cell_i and ally_tank.j == cell_j then
-                    player_in_range = ally_tank
-                    break
-                end
-            end
-        end
-        if player_in_range ~= nil then
-            tank:play_animation(tank.anim_types.fire)
-            -- apply damages
-            player_in_range:take_damages(1)
-            for _, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
-            for _, tank2 in pairs(game.allied_tanks) do tank2:refresh_reachable() end
-            -- animation
-            if player_in_range.current_health > 0 then
-                player_in_range:play_animation(player_in_range.anim_types.hit)
-            else
-                player_in_range:play_animation(player_in_range.anim_types.dead)
-            end
-
-        else
-            local movement_cells = tank.movement_cells
-            if #movement_cells > 0 then
-                -- find the cell that is closest to the objective
-                local closer_cell = movement_cells[1]
-                local closer_dst2 = math.pow(closer_cell.i - obj_i, 2) + math.pow(closer_cell.j - obj_j, 2)
-                -- loop over reachable cells
-                for _, cell in pairs(movement_cells) do
-                    local dst2 = math.pow(cell.i - obj_i, 2) + math.pow(cell.j - obj_j, 2)
-                    -- if it's closer, store it
-                    if dst2 < closer_dst2 then
-                        closer_dst2 = dst2
-                        closer_cell = cell
+        if tank.will_die == false then
+            local player_in_range = nil
+            local fire_cells = tank.fire_pattern
+            for _, pattern in pairs(fire_cells) do
+                local cell_i = tank.i + pattern[1]
+                local cell_j = tank.j + pattern[2]
+                local from_i = tank.i
+                local from_j = tank.j
+                for _, ally_tank in pairs(game.allied_tanks) do
+                    if ally_tank.i == cell_i and ally_tank.j == cell_j then
+                        player_in_range = ally_tank
+                        tank.rot = math.atan2(cell_j - from_j, cell_i - from_i)
+                        break
                     end
                 end
-                -- jump to it
-                tank:move(closer_cell.i, closer_cell.j, 0)
             end
-            -- check lose condition
-            if tank.i == obj_i and tank.j == obj_j then game.game_state = game.game_states.lose end
-            -- refresh cells for each tank
-            for _2, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
+            if player_in_range ~= nil then
+                tank:play_animation(tank.anim_types.fire)
+                -- apply damages
+                player_in_range:take_damages(1)
+                for _, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
+                for _, tank2 in pairs(game.allied_tanks) do tank2:refresh_reachable() end
+                -- animation
+                if player_in_range.current_health > 0 then
+                    player_in_range:play_animation(player_in_range.anim_types.hit)
+                else
+                    player_in_range:play_animation(player_in_range.anim_types.dead)
+                end
+
+            else
+                local movement_cells = tank.movement_cells
+                if #movement_cells > 0 then
+                    -- find the cell that is closest to the objective
+                    local closer_cell = movement_cells[1]
+                    local closer_dst2 = math.pow(closer_cell.i - obj_i, 2) + math.pow(closer_cell.j - obj_j, 2)
+                    -- loop over reachable cells
+                    for _, cell in pairs(movement_cells) do
+                        local dst2 = math.pow(cell.i - obj_i, 2) + math.pow(cell.j - obj_j, 2)
+                        -- if it's closer, store it
+                        if dst2 < closer_dst2 then
+                            closer_dst2 = dst2
+                            closer_cell = cell
+                        end
+                    end
+                    -- jump to it
+                    tank:move(closer_cell.i, closer_cell.j, 0)
+                end
+                -- check lose condition
+                if tank.i == obj_i and tank.j == obj_j then game.game_state = game.game_states.lose end
+                -- refresh cells for each tank
+                for _2, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
+            end
         end
     end
 end
@@ -554,6 +603,38 @@ end
 
 local function FGame()
     local game = {}
+    -- screen dimensions
+    game.screen = FScreen(
+        love.graphics.getWidth(),
+        love.graphics.getHeight()
+    )
+
+    -- mouse object
+    game.mouse = FMouse()
+    game.cadre = love.graphics.newImage("assets/UI_Tile.png")
+
+    -- game states
+    game.game_states = {splash = 1, play = 2, win = 3, lose = 4,}
+    game.game_state = game.game_states.splash
+
+    -- game playstates
+    game.play_states = {
+        player = 1,
+        ennemies = 2,
+        player_movement = 3,
+        player_fire = 4
+    }
+    game.play_state = game.play_states.player
+
+    -- textures
+    -- screens
+    game.titlescreen = love.graphics.newImage("assets/Titlescreen.png")
+    game.gameover = love.graphics.newImage("assets/GAMEOVER.png")
+    -- font
+    game.fontsize = 30
+    game.font = love.graphics.newFont("assets/Minecraft.ttf", game.fontsize)
+    game.font_title = love.graphics.newFont("assets/Minecraft.ttf", 1.5 * game.fontsize)
+    love.graphics.setFont(game.font)
 
     -- constructor
     game.new_game = new_game

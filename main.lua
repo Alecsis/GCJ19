@@ -3,7 +3,7 @@ local game
 function love.load()
     love.graphics.setDefaultFilter("nearest")
     love.graphics.setLineWidth(1.5)
-    love.window.setTitle("Tanks GCJ19 v0.0.1 by Alecsis and Kowee")
+    --love.window.setTitle("CheckTanks GCJ19 v0.0.1 by Alecsis and Kowee")
     math.randomseed(os.time())
     local FGame = require("src.game")
     game = FGame()
