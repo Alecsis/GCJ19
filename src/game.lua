@@ -105,7 +105,7 @@ local function new_game(game)
     local gui = require("src.gui")
     local font = love.graphics.getFont()
     game.ui_group = gui.newNode(game.map.offset.x, 0)
-    
+
     -- blank button
     local new_turn_button = gui.newButton(mapwidth / 2, 32, 150, 50, "NEW_TURN", font, {0, 1, 0})
     new_turn_button:setImage(love.graphics.newImage("assets/new_btn_end_turn.png"))
@@ -238,7 +238,7 @@ local function update(game, dt)
                         -- did we move all units
                         local all_unit_played = true
                         for _, tank in pairs(game.allied_tanks) do
-                            if tank.did_play == false then
+                            if tank.did_play == false and tank.dead == false then
                                 all_unit_played = false
                                 break
                             end
@@ -298,7 +298,7 @@ local function update(game, dt)
                         -- did we move all units
                         local all_unit_played = true
                         for _, tank in pairs(game.allied_tanks) do
-                            if tank.did_play == false then
+                            if tank.did_play == false and tank.dead == false then
                                 all_unit_played = false
                                 break
                             end
@@ -327,18 +327,24 @@ local function update(game, dt)
             local tank = game.enemies_tanks[i]
             tank:update(dt)
 
-            --[[if tank.dead then
-            table.remove(game.enemies_tanks, i)
-        end]]
+            if tank.dead and tank.anim_over then
+                table.remove(game.enemies_tanks, i)
+                if #game.enemies_tanks == 0 then
+                    game.game_state = game.game_states.win
+                end
+            end
         end
 
         for i = #game.allied_tanks, 1, -1 do
             local tank = game.allied_tanks[i]
             tank:update(dt)
 
-            --[[if tank.dead then
-            table.remove(game.allied_tanks, i)
-        end]]
+            if tank.dead and tank.anim_over then
+                table.remove(game.allied_tanks, i)
+                if #game.allied_tanks == 0 then
+                    game.game_state = game.game_states.lose
+                end
+            end
         end
     end
 
@@ -460,22 +466,50 @@ local function ai_logic(game)
     local obj_j = game.map.objectives[1][2] - 1
     -- loop over all enemies tanks to update them
     for _, tank in pairs(game.enemies_tanks) do
-        local movement_cells = tank.movement_cells
-        if #movement_cells > 0 then
-            -- find the cell that is closest to the objective
-            local closer_cell = movement_cells[1]
-            local closer_dst2 = math.pow(closer_cell.i - obj_i, 2) + math.pow(closer_cell.j - obj_j, 2)
-            -- loop over reachable cells
-            for _, cell in pairs(movement_cells) do
-                local dst2 = math.pow(cell.i - obj_i, 2) + math.pow(cell.j - obj_j, 2)
-                -- if it's closer, store it
-                if dst2 < closer_dst2 then
-                    closer_dst2 = dst2
-                    closer_cell = cell
+
+        local player_in_range = nil
+        local fire_cells = tank.fire_pattern
+        for _, pattern in pairs(fire_cells) do
+            local cell_i = tank.i + pattern[1]
+            local cell_j = tank.j + pattern[2]
+            for _, ally_tank in pairs(game.allied_tanks) do
+                if ally_tank.i == cell_i and ally_tank.j == cell_j then
+                    player_in_range = ally_tank
+                    break
                 end
             end
-            -- jump to it
-            tank:move(closer_cell.i, closer_cell.j, 0)
+        end
+        if player_in_range ~= nil then
+            tank:play_animation(tank.anim_types.fire)
+            -- apply damages
+            player_in_range:take_damages(1)
+            for _, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
+            for _, tank2 in pairs(game.allied_tanks) do tank2:refresh_reachable() end
+            -- animation
+            if player_in_range.current_health > 0 then
+                player_in_range:play_animation(player_in_range.anim_types.hit)
+            else
+                player_in_range:play_animation(player_in_range.anim_types.dead)
+            end
+
+        else
+            local movement_cells = tank.movement_cells
+            if #movement_cells > 0 then
+                -- find the cell that is closest to the objective
+                local closer_cell = movement_cells[1]
+                local closer_dst2 = math.pow(closer_cell.i - obj_i, 2) + math.pow(closer_cell.j - obj_j, 2)
+                -- loop over reachable cells
+                for _, cell in pairs(movement_cells) do
+                    local dst2 = math.pow(cell.i - obj_i, 2) + math.pow(cell.j - obj_j, 2)
+                    -- if it's closer, store it
+                    if dst2 < closer_dst2 then
+                        closer_dst2 = dst2
+                        closer_cell = cell
+                    end
+                end
+                -- jump to it
+                tank:move(closer_cell.i, closer_cell.j, 0)
+            end
             -- check lose condition
             if tank.i == obj_i and tank.j == obj_j then game.game_state = game.game_states.lose end
             -- refresh cells for each tank
@@ -487,6 +521,23 @@ end
 local function select_unit(game, punit)
     game.selected_unit = punit
     if punit.did_play == false then
+        local enemy_in_range = false
+        local fire_cells = punit.fire_pattern
+        for _, pattern in pairs(fire_cells) do
+            local cell_i = punit.i + pattern[1]
+            local cell_j = punit.j + pattern[2]
+            for _, tank in pairs(game.enemies_tanks) do
+                if tank.i == cell_i and tank.j == cell_j then
+                    enemy_in_range = true
+                    break
+                end
+            end
+        end
+        if enemy_in_range then
+            game.play_state = game.play_states.player_fire
+        else
+            game.play_state = game.play_states.player_movement
+        end
         game.move_button:setVisible(true)
         game.fire_button:setVisible(true)
     end

@@ -31,7 +31,7 @@ local function draw(tank)
         tank.size / 2,
         tank.size / 2
     )
-    --love.graphics.setBlendMode("alpha")
+    -- love.graphics.setBlendMode("alpha")
 end
 
 local function update(tank, dt)
@@ -45,6 +45,9 @@ local function update(tank, dt)
             if tank.current_anim == tank.anim_types.dead then tank.dead = true end
             tank.frame = 1
             tank.current_anim = anim.next
+            tank.anim_over = true
+        else
+            tank.anim_over = false
         end
     end
     -- update blink
@@ -159,6 +162,7 @@ local function FTank(pteam, pi, pj, pmap)
     tank.current_anim = tank.anim_types.idle
     tank.frame = 1
     tank.anim_timer = 0
+    tank.anim_over = false
     tank.quads = {}
     local spritesheet = tankprops.spritesheet
     for anim_type, anim in pairs(tank.animations) do
