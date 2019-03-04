@@ -32,7 +32,19 @@ local function update(game, dt)
     if not mouse.pressed and mouse.old_pressed then mouse.released = true end
 
     -- Hover tiles
-    if game.play_state == game.play_states.player_fire then
+    if game.play_state == game.play_states.player_movement then
+        assert(game.selected_unit ~= nil)
+        local selected = game.selected_unit
+        for _, cell in pairs(selected.movement_cells) do
+            local cell_i = cell.i
+            local cell_j = cell.j
+            local from_i = selected.i
+            local from_j = selected.j
+            if mouse.i == cell_i and mouse.j == cell_j then
+                selected.rot = math.atan2(cell_j - from_j, cell_i - from_i)
+            end
+        end
+    elseif game.play_state == game.play_states.player_fire then
         assert(game.selected_unit ~= nil)
         local selected = game.selected_unit
         local fire_cells = selected.fire_pattern
@@ -187,6 +199,15 @@ local function draw(game)
             game.cadre,
             mouse.i * map.tilesize,
             mouse.j * map.tilesize
+        )
+    end
+
+    if game.selected_unit ~= nil then
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(
+            game.cadre,
+            game.selected_unit.i * map.tilesize,
+            game.selected_unit.j * map.tilesize
         )
     end
 
