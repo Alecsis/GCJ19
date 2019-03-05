@@ -202,8 +202,18 @@ local function update(game, dt)
         if game.play_state == game.play_states.enemies then
             game.end_turn_tmr = game.end_turn_tmr - dt
             if game.end_turn_tmr <= 0 then
-                game:ai_logic()
-                if game.game_state ~= game.game_states.lose then
+                game.end_turn_tmr = 0.5
+                local tank_to_play = nil
+                for _, tank in pairs(game.enemies_tanks) do 
+                    if tank.did_play == false then 
+                        tank_to_play = tank break 
+                    end
+                end
+                if tank_to_play then
+                    game:ai_logic(tank_to_play)
+                    tank_to_play.did_play = true
+                end
+                if game.game_state ~= game.game_states.lose and tank_to_play == nil then
                     game:new_turn()
                     for _, tank in pairs(game.allied_tanks) do tank:set_blink(true) end
                 end
@@ -508,12 +518,12 @@ local function draw(game)
 end
 
 local function distance(i1, j1, i2, j2) return math.abs(i1 - i2) + math.abs(j1 - j2) end
-local function ai_logic(game)
+local function ai_logic(game, tank)
     -- player camp to defend
     local obj_i = game.map.objectives[1][1] - 1
     local obj_j = game.map.objectives[1][2] - 1
     -- loop over all enemies tanks to update them
-    for _, tank in pairs(game.enemies_tanks) do
+    --for _, tank in pairs(game.enemies_tanks) do
         if tank.will_die == false then
             local player_in_range = nil
             local fire_cells = tank.fire_pattern
@@ -567,7 +577,7 @@ local function ai_logic(game)
                 for _2, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
             end
         end
-    end
+    --end
 end
 
 local function select_unit(game, punit)
