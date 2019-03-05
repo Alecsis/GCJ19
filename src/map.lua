@@ -311,7 +311,7 @@ end
 
 local function in_bounds(map, pi, pj) return pi >= 0 and pi < map.size and pj >= 0 and pj < map.size end
 
-local function FMap(game, screen)
+local function FMap(game, screen, plevel_to_load)
     local map = {}
 
     local mapprops = require("data.mapprops")
@@ -327,10 +327,13 @@ local function FMap(game, screen)
     map.solid_obj = objprops.solid
     map.tiletypes = tileprops.tiletypes
     map.game = game
-
-    map.grid = mapprops.level.terrain
-    map.tanks = mapprops.level.tanks
-    map.objects = mapprops.level.objects
+    
+    map.current_level = plevel_to_load
+    local level = mapprops.levels[plevel_to_load]
+    map.max_level = #mapprops.levels
+    map.grid = level.terrain
+    map.tanks = level.tanks
+    map.objects = level.objects
 
     map.objectives = {}
 

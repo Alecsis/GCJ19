@@ -42,10 +42,9 @@ local function new_game_button_callback(game, pstate)
     if pstate == "end" then game.game_state = game.game_states.play end
 end
 
-local function new_game(game)
-
+local function new_game(game, plevel)
     -- map construction
-    game.map = FMap(game, game.screen)
+    game.map = FMap(game, game.screen, plevel)
     local mapwidth = game.map.tilesize * game.map.size
     local mapheight = game.map.tilesize * game.map.size
 
@@ -145,19 +144,22 @@ local function update(game, dt)
     if game.game_state == game.game_states.splash then
         game.menu_ui_group:update(dt)
         if love.keyboard.isDown('space') or love.keyboard.isDown('return') then
-            game:new_game()
+            game:new_game(1)
+            game.game_state = game.game_states.play
+        end
+    elseif game.game_state == game.game_states.win_continue then
+        -- game.menu_ui_group:update(dt)
+        if love.keyboard.isDown('space') or love.keyboard.isDown('return') then
+            game:new_game(game.map.current_level + 1)
             game.game_state = game.game_states.play
         end
     elseif game.game_state == game.game_states.win then
         -- game.menu_ui_group:update(dt)
-        if love.keyboard.isDown('space') or love.keyboard.isDown('return') then
-            game:new_game()
-            game.game_state = game.game_states.play
-        end
+        if love.keyboard.isDown('space') or love.keyboard.isDown('return') then love.event.quit() end
     elseif game.game_state == game.game_states.lose then
         -- game.menu_ui_group:update(dt)
         if love.keyboard.isDown('space') or love.keyboard.isDown('return') then
-            game:new_game()
+            game:new_game(game.map.current_level)
             game.game_state = game.game_states.play
         end
     elseif game.game_state == game.game_states.play then
@@ -269,7 +271,13 @@ local function update(game, dt)
                             selected.did_play = true
                             selected:set_blink(false)
                             -- check victory
-                            if cell_i == map.objectives[2][1] - 1 and cell_j == map.objectives[2][2] - 1 then game.game_state = game.game_states.win end
+                            if cell_i == map.objectives[2][1] - 1 and cell_j == map.objectives[2][2] - 1 then
+                                if game.map.current_level == game.map.max_level then
+                                    game.game_state = game.game_states.win
+                                else
+                                    game.game_state = game.game_states.win_continue
+                                end
+                            end
                             -- refresh cells for each tank
                             for _2, tank2 in pairs(game.allied_tanks) do tank2:refresh_reachable() end
                             for _2, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
@@ -431,7 +439,13 @@ local function update(game, dt)
                                 selected.did_play = true
                                 selected:set_blink(false)
                                 -- check victory
-                                if cell_i == map.objectives[2][1] - 1 and cell_j == map.objectives[2][2] - 1 then game.game_state = game.game_states.win end
+                                if cell_i == map.objectives[2][1] - 1 and cell_j == map.objectives[2][2] - 1 then
+                                    if game.map.current_level == game.map.max_level then
+                                        game.game_state = game.game_states.win
+                                    else
+                                        game.game_state = game.game_states.win_continue
+                                    end
+                                end
                                 -- refresh cells for each tank
                                 for _2, tank2 in pairs(game.allied_tanks) do tank2:refresh_reachable() end
                                 for _2, tank2 in pairs(game.enemies_tanks) do tank2:refresh_reachable() end
@@ -475,7 +489,13 @@ local function update(game, dt)
 
             if tank.dead and tank.anim_over then
                 table.remove(game.enemies_tanks, i)
-                if #game.enemies_tanks == 0 then game.game_state = game.game_states.win end
+                if #game.enemies_tanks == 0 then
+                    if game.map.current_level == game.map.max_level then
+                        game.game_state = game.game_states.win
+                    else
+                        game.game_state = game.game_states.win_continue
+                    end
+                end
             end
         end
 
@@ -498,7 +518,7 @@ local function draw(game)
         love.graphics.draw(game.titlescreen)
         love.graphics.setFont(game.font)
         love.graphics.printf(
-            "Press space to play",
+            "Press space to start",
             0,
             game.screen.h - game.fontsize - 10,
             game.screen.w,
@@ -517,7 +537,25 @@ local function draw(game)
         love.graphics.draw(game.gameover)
         love.graphics.setFont(game.font)
         love.graphics.printf(
-            "Press space to play",
+            "Press space to exit",
+            0,
+            game.screen.h - game.fontsize - 10,
+            game.screen.w,
+            "center"
+        )
+        love.graphics.printf(
+            "You finished the game !",
+            0,
+            game.fontsize / 2,
+            game.screen.w,
+            "center"
+        )
+        -- game.menu_ui_group:draw()
+    elseif game.game_state == game.game_states.win_continue then
+        love.graphics.draw(game.gameover)
+        love.graphics.setFont(game.font)
+        love.graphics.printf(
+            "Press space to continue",
             0,
             game.screen.h - game.fontsize - 10,
             game.screen.w,
@@ -535,7 +573,7 @@ local function draw(game)
         love.graphics.draw(game.gameover)
         love.graphics.setFont(game.font)
         love.graphics.printf(
-            "Press space to play",
+            "Press space to retry",
             0,
             game.screen.h - game.fontsize - 10,
             game.screen.w,
@@ -786,7 +824,7 @@ local function FGame()
     game.cadre = love.graphics.newImage("assets/UI_Tile.png")
 
     -- game states
-    game.game_states = {splash = 1, play = 2, win = 3, lose = 4,}
+    game.game_states = {splash = 1, play = 2, win = 3, lose = 4, win_continue = 5}
     game.game_state = game.game_states.splash
 
     -- game playstates
@@ -811,7 +849,7 @@ local function FGame()
 
     -- constructor
     game.new_game = new_game
-    game:new_game()
+    game:new_game(1) -- first level
 
     -- interface methods
     game.update = update

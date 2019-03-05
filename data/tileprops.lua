@@ -5,8 +5,8 @@ tileprops.tilesize = 32*2
 tileprops.tiletypes = {
   grass = 1,
   sand = 2,
-  forest = 3,
-  water = 4,
+  water = 3,
+  forest = 4,
   mountain = 5,
   building = 6,
 }
@@ -21,7 +21,7 @@ tileprops.tilecolor = {
 
 tileprops.solid = {
   [tileprops.tiletypes.grass] = false, 
-  [tileprops.tiletypes.sand] = true,
+  [tileprops.tiletypes.sand] = false,
   [tileprops.tiletypes.forest] = true, 
   [tileprops.tiletypes.water] = false,
   [tileprops.tiletypes.mountain] = false,
